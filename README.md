@@ -80,7 +80,9 @@ The chi-square ($\chi^2$) test is applicable for **discrete** variables that can
 
 Let's start with a goodness of fit example. This is kind of like the one-sample t-test shown above, in that we are comparing sample data to a theoretical value. This time instead of comparing the sample mean to a theoretical mean, we will compare the frequencies of observed data to the expected frequencies.
 
-For our particular example, let's use the coin toss at the Super Bowl (current data through Super Bowl 55). We expect that this is a "fair" coin, meaning that we would expect it to produce Heads and Tails equally often.
+#### Fair Coin?
+
+For this example, let's use the coin toss at the Super Bowl (current data through Super Bowl 55). We expect that this is a "fair" coin, meaning that we would expect it to produce Heads and Tails equally often.
 
 
 ```python
@@ -182,8 +184,7 @@ observed = coin_toss_counts.values
 # Heads and tails each expected half the time
 expected = [sum(coin_toss_counts)/2, sum(coin_toss_counts)/2]
 
-
-# Placeholder data for display purposes; you can ignore thes values
+# Placeholder data for display purposes; you can ignore these values
 x = np.array([0, 5])
 offset = 1
 bar_width = 2
@@ -219,7 +220,7 @@ A chi-square test:
 * Involves the calculation of a **chi-square statistic** (also just referred to as $\chi^2$) that represents a standardized version of the difference between the observed and expected values
 * Compares this $\chi^2$ to the **chi-square distribution** (the shape of which varies depending on the degrees of freedom) in order to determine whether we can reject the null hypothesis at a given alpha level — i.e. to determine whether the difference specified by the alternative hypothesis is statistically significant
 
-Once again, the simplest way to do this is using `scipy.stats`. We'll again say that our alpha is 0.01.
+Once again, the simplest way to do this is using `scipy.stats` ([documentation here](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.chisquare.html)). We'll again say that our alpha is 0.01.
 
 
 ```python
@@ -237,6 +238,86 @@ result
 Based on the results above, we fail to reject the null hypothesis at our desired significance level. This is because we found a p-value of 0.69, which is higher than our specified $\alpha = 0.01$. (Chi-square tests are always one-tailed so we don't have to consider whether to divide the p-value by 2.)
 
 In other words, we do not have statistically significant evidence that the coin used here is not a "fair" coin! This was an example of a "goodness of fit" application of chi-square.
+
+#### Home-Field Advantage?
+
+Another question we might want to ask is whether the home team wins more often than the away team.
+
+
+```python
+game_winner_counts = sb_data["Game Winner"].value_counts().sort_index()
+game_winner_counts
+```
+
+
+
+
+    Away Team    31
+    Home Team    24
+    Name: Game Winner, dtype: int64
+
+
+
+Interesting, it looks like the away team actually wins more often. But is this difference statistically significant?
+
+
+```python
+observed = game_winner_counts.values
+expected = [sum(game_winner_counts)/2, sum(game_winner_counts)/2]
+
+stats.chisquare(observed, expected)
+```
+
+
+
+
+    Power_divergenceResult(statistic=0.8909090909090909, pvalue=0.34523107177184)
+
+
+
+For the Super Bowl specifically, we don't have a low enough p-value to reject the null hypothesis that the home team and away team win equally often. In other words, we are not finding the difference to be statistically significant.
+
+But what if we look at regular-season NFL games for the same time period?
+
+
+```python
+# Data from FiveThirtyEight
+nfl_data = pd.read_csv("nfl_games.csv")
+# Narrow to relevant rows
+nfl_data = nfl_data[(nfl_data["neutral"] == 0) & (nfl_data["playoff"] == 0) & (nfl_data["season"] >= 1966 )]
+# Engineer a new feature
+nfl_data.loc[nfl_data["result1"] == 0, "Game Winner"] = "Away Team"
+nfl_data.loc[nfl_data["result1"] == 1, "Game Winner"] = "Home Team"
+
+game_winner_counts = nfl_data["Game Winner"].value_counts().sort_index()
+game_winner_counts
+```
+
+
+
+
+    Away Team    5265
+    Home Team    7066
+    Name: Game Winner, dtype: int64
+
+
+
+
+```python
+observed = game_winner_counts.values
+expected = [sum(game_winner_counts)/2, sum(game_winner_counts)/2]
+
+stats.chisquare(observed, expected)
+```
+
+
+
+
+    Power_divergenceResult(statistic=263.0444408401589, pvalue=3.723190824055013e-59)
+
+
+
+With our much larger dataset, we are able to reject the null hypothesis and say that there is a statistically significant difference between the win counts of home teams vs. away teams.
 
 ## Chi-Square Test Calculations
 
@@ -264,7 +345,7 @@ chi_square
 
 
 
-    0.16363636363636364
+    263.0444408401589
 
 
 
@@ -301,7 +382,7 @@ ax.legend();
 
 
     
-![png](index_files/index_22_0.png)
+![png](index_files/index_30_0.png)
     
 
 
@@ -333,7 +414,7 @@ ax.legend();
 
 
     
-![png](index_files/index_25_0.png)
+![png](index_files/index_33_0.png)
     
 
 
@@ -354,7 +435,7 @@ ax.legend();
 
 
     
-![png](index_files/index_27_0.png)
+![png](index_files/index_35_0.png)
     
 
 
@@ -370,7 +451,7 @@ stats.chi2.sf(chi_square, df=df)
 
 
 
-    0.6858304344516056
+    3.723190824055013e-59
 
 
 
@@ -409,7 +490,7 @@ ax.legend(fontsize="x-large");
 
 
     
-![png](index_files/index_33_0.png)
+![png](index_files/index_41_0.png)
     
 
 
@@ -429,7 +510,7 @@ The null hypothesis is the opposite of this, that winning the coin toss and winn
 
 One other way to phrase this as a research question is: **is winning the game related to winning the coin toss, or are these unrelated (independent) variables?**
 
-Let's begin by aggregating the data — conveniently pandas has a `crosstab` function that will set this up for us automatically:
+Let's begin by aggregating the data — conveniently pandas has a `crosstab` function ([documentation here](https://pandas.pydata.org/docs/reference/api/pandas.crosstab.html)) that will set this up for us automatically:
 
 
 ```python
@@ -490,7 +571,7 @@ We observe that there is a slight imbalance here, where the Home and Away team s
 
 But, is the difference statistically significant?
 
-Because we have the data set up as a [contingency table](https://en.wikipedia.org/wiki/Contingency_table), we can use the `chi2_contingency` function instead of `chisquare`:
+Because we have the data set up as a [contingency table](https://en.wikipedia.org/wiki/Contingency_table), we can use the `chi2_contingency` function ([documentation here](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.chi2_contingency.html)) instead of `chisquare`:
 
 
 ```python
@@ -516,36 +597,14 @@ One other way we can use a chi-square test is a test for homogeneity. It is very
 
 Whereas the independence test is about the *factors* (e.g. winning the coin toss vs. winning the game), homogeneity is about the *labels* (values) themselves. Similar to two-sample t-tests, the goal is comparing the distributions of two population samples, to understand whether their underlying populations follow the same distribution.
 
-Let's treat "Home Teams" as one sample and "Away Teams" as another sample. Is the distribution of wins significantly different between these populations?
+[This article](https://www.washingtonpost.com/sports/2020/11/11/home-field-advantage-is-lie/) argues that the home field advantage changed in the 2002-2019 seasons compared to the 2020 season, when the reduced crowd sizes reduced the home field advantage. Let's test that out.
 
 
 ```python
-new_table = []
-for index, row in sb_data.iterrows():
-    new_row = {}
-    if row["Game Winner"] == "Home Team":
-        # If the home team won the game, the game loser (away team) called the coin toss
-        new_row["Who Called It"] = "Game Loser"
-    else:
-        # The away team won, so the game winner called the coin toss
-        new_row["Who Called It"] = "Game Winner"
-
-    if row["Coin Toss Winner"] == "Home Team":
-        # If the home team won the coin toss, the call is the opposite of the outcome
-        if row["Coin Toss Outcome"] == "Heads":
-            new_row["Coin Toss Call"] = "Tails"
-        else:
-            new_row["Coin Toss Call"] = "Heads"
-    else:
-        # If the away team won the coin toss, the call is the same as the outcome
-        new_row["Coin Toss Call"] = row["Coin Toss Outcome"]
-
-    new_table.append(new_row)
-```
-
-
-```python
-pd.DataFrame(new_table)
+nfl_data_subset = nfl_data[nfl_data["season"] >= 2002].copy()
+nfl_data_subset.loc[nfl_data_subset["season"] <= 2019, "Timing"] = "Before"
+nfl_data_subset.loc[nfl_data_subset["season"] > 2019, "Timing"] = "After"
+nfl_data_subset[["date", "season", "Game Winner", "Timing"]]
 ```
 
 
@@ -569,709 +628,143 @@ pd.DataFrame(new_table)
   <thead>
     <tr style="text-align: right;">
       <th></th>
-      <th>Who Called It</th>
-      <th>Coin Toss Call</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>Game Loser</td>
-      <td>Tails</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>Game Winner</td>
-      <td>Heads</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>Game Loser</td>
-      <td>Tails</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>Game Loser</td>
-      <td>Tails</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>Game Winner</td>
-      <td>Heads</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>Game Winner</td>
-      <td>Tails</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>Game Winner</td>
-      <td>Heads</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>Game Loser</td>
-      <td>Tails</td>
-    </tr>
-    <tr>
-      <th>8</th>
-      <td>Game Winner</td>
-      <td>Tails</td>
-    </tr>
-    <tr>
-      <th>9</th>
-      <td>Game Loser</td>
-      <td>Heads</td>
-    </tr>
-    <tr>
-      <th>10</th>
-      <td>Game Winner</td>
-      <td>Tails</td>
-    </tr>
-    <tr>
-      <th>11</th>
-      <td>Game Winner</td>
-      <td>Heads</td>
-    </tr>
-    <tr>
-      <th>12</th>
-      <td>Game Winner</td>
-      <td>Tails</td>
-    </tr>
-    <tr>
-      <th>13</th>
-      <td>Game Loser</td>
-      <td>Heads</td>
-    </tr>
-    <tr>
-      <th>14</th>
-      <td>Game Winner</td>
-      <td>Heads</td>
-    </tr>
-    <tr>
-      <th>15</th>
-      <td>Game Winner</td>
-      <td>Tails</td>
-    </tr>
-    <tr>
-      <th>16</th>
-      <td>Game Loser</td>
-      <td>Tails</td>
-    </tr>
-    <tr>
-      <th>17</th>
-      <td>Game Loser</td>
-      <td>Tails</td>
-    </tr>
-    <tr>
-      <th>18</th>
-      <td>Game Loser</td>
-      <td>Heads</td>
-    </tr>
-    <tr>
-      <th>19</th>
-      <td>Game Winner</td>
-      <td>Tails</td>
-    </tr>
-    <tr>
-      <th>20</th>
-      <td>Game Loser</td>
-      <td>Tails</td>
-    </tr>
-    <tr>
-      <th>21</th>
-      <td>Game Winner</td>
-      <td>Heads</td>
-    </tr>
-    <tr>
-      <th>22</th>
-      <td>Game Loser</td>
-      <td>Heads</td>
-    </tr>
-    <tr>
-      <th>23</th>
-      <td>Game Winner</td>
-      <td>Tails</td>
-    </tr>
-    <tr>
-      <th>24</th>
-      <td>Game Loser</td>
-      <td>Heads</td>
-    </tr>
-    <tr>
-      <th>25</th>
-      <td>Game Winner</td>
-      <td>Heads</td>
-    </tr>
-    <tr>
-      <th>26</th>
-      <td>Game Loser</td>
-      <td>Heads</td>
-    </tr>
-    <tr>
-      <th>27</th>
-      <td>Game Winner</td>
-      <td>Tails</td>
-    </tr>
-    <tr>
-      <th>28</th>
-      <td>Game Loser</td>
-      <td>Tails</td>
-    </tr>
-    <tr>
-      <th>29</th>
-      <td>Game Winner</td>
-      <td>Tails</td>
-    </tr>
-    <tr>
-      <th>30</th>
-      <td>Game Loser</td>
-      <td>Heads</td>
-    </tr>
-    <tr>
-      <th>31</th>
-      <td>Game Loser</td>
-      <td>Tails</td>
-    </tr>
-    <tr>
-      <th>32</th>
-      <td>Game Winner</td>
-      <td>Heads</td>
-    </tr>
-    <tr>
-      <th>33</th>
-      <td>Game Winner</td>
-      <td>Tails</td>
-    </tr>
-    <tr>
-      <th>34</th>
-      <td>Game Winner</td>
-      <td>Heads</td>
-    </tr>
-    <tr>
-      <th>35</th>
-      <td>Game Loser</td>
-      <td>Heads</td>
-    </tr>
-    <tr>
-      <th>36</th>
-      <td>Game Loser</td>
-      <td>Heads</td>
-    </tr>
-    <tr>
-      <th>37</th>
-      <td>Game Loser</td>
-      <td>Tails</td>
-    </tr>
-    <tr>
-      <th>38</th>
-      <td>Game Winner</td>
-      <td>Heads</td>
-    </tr>
-    <tr>
-      <th>39</th>
-      <td>Game Loser</td>
-      <td>Tails</td>
-    </tr>
-    <tr>
-      <th>40</th>
-      <td>Game Winner</td>
-      <td>Tails</td>
-    </tr>
-    <tr>
-      <th>41</th>
-      <td>Game Winner</td>
-      <td>Tails</td>
-    </tr>
-    <tr>
-      <th>42</th>
-      <td>Game Winner</td>
-      <td>Tails</td>
-    </tr>
-    <tr>
-      <th>43</th>
-      <td>Game Winner</td>
-      <td>Heads</td>
-    </tr>
-    <tr>
-      <th>44</th>
-      <td>Game Loser</td>
-      <td>Tails</td>
-    </tr>
-    <tr>
-      <th>45</th>
-      <td>Game Winner</td>
-      <td>Tails</td>
-    </tr>
-    <tr>
-      <th>46</th>
-      <td>Game Winner</td>
-      <td>Heads</td>
-    </tr>
-    <tr>
-      <th>47</th>
-      <td>Game Winner</td>
-      <td>Tails</td>
-    </tr>
-    <tr>
-      <th>48</th>
-      <td>Game Winner</td>
-      <td>Heads</td>
-    </tr>
-    <tr>
-      <th>49</th>
-      <td>Game Loser</td>
-      <td>Tails</td>
-    </tr>
-    <tr>
-      <th>50</th>
-      <td>Game Winner</td>
-      <td>Heads</td>
-    </tr>
-    <tr>
-      <th>51</th>
-      <td>Game Winner</td>
-      <td>Tails</td>
-    </tr>
-    <tr>
-      <th>52</th>
-      <td>Game Winner</td>
-      <td>Heads</td>
-    </tr>
-    <tr>
-      <th>53</th>
-      <td>Game Loser</td>
-      <td>Tails</td>
-    </tr>
-    <tr>
-      <th>54</th>
-      <td>Game Loser</td>
-      <td>Heads</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-
-
-
-
-```python
-sb_data
-```
-
-
-
-
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>Super Bowl</th>
-      <th>Coin Toss Outcome</th>
-      <th>Coin Toss Winner</th>
+      <th>date</th>
+      <th>season</th>
       <th>Game Winner</th>
+      <th>Timing</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <th>0</th>
-      <td>1</td>
-      <td>Heads</td>
+      <th>11735</th>
+      <td>2002-09-05</td>
+      <td>2002</td>
+      <td>Away Team</td>
+      <td>Before</td>
+    </tr>
+    <tr>
+      <th>11736</th>
+      <td>2002-09-08</td>
+      <td>2002</td>
+      <td>Away Team</td>
+      <td>Before</td>
+    </tr>
+    <tr>
+      <th>11737</th>
+      <td>2002-09-08</td>
+      <td>2002</td>
       <td>Home Team</td>
+      <td>Before</td>
+    </tr>
+    <tr>
+      <th>11738</th>
+      <td>2002-09-08</td>
+      <td>2002</td>
       <td>Home Team</td>
+      <td>Before</td>
     </tr>
     <tr>
-      <th>1</th>
-      <td>2</td>
-      <td>Tails</td>
+      <th>11739</th>
+      <td>2002-09-08</td>
+      <td>2002</td>
+      <td>Away Team</td>
+      <td>Before</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>16792</th>
+      <td>2021-01-03</td>
+      <td>2020</td>
       <td>Home Team</td>
-      <td>Away Team</td>
+      <td>After</td>
     </tr>
     <tr>
-      <th>2</th>
-      <td>3</td>
-      <td>Heads</td>
-      <td>Home Team</td>
-      <td>Home Team</td>
+      <th>16793</th>
+      <td>2021-01-03</td>
+      <td>2020</td>
+      <td>Away Team</td>
+      <td>After</td>
     </tr>
     <tr>
-      <th>3</th>
-      <td>4</td>
-      <td>Tails</td>
+      <th>16794</th>
+      <td>2021-01-03</td>
+      <td>2020</td>
       <td>Away Team</td>
-      <td>Home Team</td>
+      <td>After</td>
     </tr>
     <tr>
-      <th>4</th>
-      <td>5</td>
-      <td>Tails</td>
-      <td>Home Team</td>
+      <th>16795</th>
+      <td>2021-01-03</td>
+      <td>2020</td>
       <td>Away Team</td>
+      <td>After</td>
     </tr>
     <tr>
-      <th>5</th>
-      <td>6</td>
-      <td>Heads</td>
-      <td>Home Team</td>
+      <th>16796</th>
+      <td>2021-01-03</td>
+      <td>2020</td>
       <td>Away Team</td>
+      <td>After</td>
+    </tr>
+  </tbody>
+</table>
+<p>4827 rows × 4 columns</p>
+</div>
+
+
+
+
+```python
+homogeneity_table = pd.crosstab(nfl_data_subset["Timing"], nfl_data_subset["Game Winner"])
+homogeneity_table
+```
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Game Winner</th>
+      <th>Away Team</th>
+      <th>Home Team</th>
     </tr>
     <tr>
-      <th>6</th>
-      <td>7</td>
-      <td>Heads</td>
-      <td>Away Team</td>
-      <td>Away Team</td>
+      <th>Timing</th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>After</th>
+      <td>128</td>
+      <td>127</td>
     </tr>
     <tr>
-      <th>7</th>
-      <td>8</td>
-      <td>Heads</td>
-      <td>Home Team</td>
-      <td>Home Team</td>
-    </tr>
-    <tr>
-      <th>8</th>
-      <td>9</td>
-      <td>Tails</td>
-      <td>Away Team</td>
-      <td>Away Team</td>
-    </tr>
-    <tr>
-      <th>9</th>
-      <td>10</td>
-      <td>Heads</td>
-      <td>Away Team</td>
-      <td>Home Team</td>
-    </tr>
-    <tr>
-      <th>10</th>
-      <td>11</td>
-      <td>Tails</td>
-      <td>Away Team</td>
-      <td>Away Team</td>
-    </tr>
-    <tr>
-      <th>11</th>
-      <td>12</td>
-      <td>Heads</td>
-      <td>Away Team</td>
-      <td>Away Team</td>
-    </tr>
-    <tr>
-      <th>12</th>
-      <td>13</td>
-      <td>Heads</td>
-      <td>Home Team</td>
-      <td>Away Team</td>
-    </tr>
-    <tr>
-      <th>13</th>
-      <td>14</td>
-      <td>Heads</td>
-      <td>Away Team</td>
-      <td>Home Team</td>
-    </tr>
-    <tr>
-      <th>14</th>
-      <td>15</td>
-      <td>Tails</td>
-      <td>Home Team</td>
-      <td>Away Team</td>
-    </tr>
-    <tr>
-      <th>15</th>
-      <td>16</td>
-      <td>Tails</td>
-      <td>Away Team</td>
-      <td>Away Team</td>
-    </tr>
-    <tr>
-      <th>16</th>
-      <td>17</td>
-      <td>Tails</td>
-      <td>Away Team</td>
-      <td>Home Team</td>
-    </tr>
-    <tr>
-      <th>17</th>
-      <td>18</td>
-      <td>Heads</td>
-      <td>Home Team</td>
-      <td>Home Team</td>
-    </tr>
-    <tr>
-      <th>18</th>
-      <td>19</td>
-      <td>Tails</td>
-      <td>Home Team</td>
-      <td>Home Team</td>
-    </tr>
-    <tr>
-      <th>19</th>
-      <td>20</td>
-      <td>Tails</td>
-      <td>Away Team</td>
-      <td>Away Team</td>
-    </tr>
-    <tr>
-      <th>20</th>
-      <td>21</td>
-      <td>Tails</td>
-      <td>Away Team</td>
-      <td>Home Team</td>
-    </tr>
-    <tr>
-      <th>21</th>
-      <td>22</td>
-      <td>Heads</td>
-      <td>Away Team</td>
-      <td>Away Team</td>
-    </tr>
-    <tr>
-      <th>22</th>
-      <td>23</td>
-      <td>Tails</td>
-      <td>Home Team</td>
-      <td>Home Team</td>
-    </tr>
-    <tr>
-      <th>23</th>
-      <td>24</td>
-      <td>Heads</td>
-      <td>Home Team</td>
-      <td>Away Team</td>
-    </tr>
-    <tr>
-      <th>24</th>
-      <td>25</td>
-      <td>Heads</td>
-      <td>Away Team</td>
-      <td>Home Team</td>
-    </tr>
-    <tr>
-      <th>25</th>
-      <td>26</td>
-      <td>Heads</td>
-      <td>Away Team</td>
-      <td>Away Team</td>
-    </tr>
-    <tr>
-      <th>26</th>
-      <td>27</td>
-      <td>Heads</td>
-      <td>Away Team</td>
-      <td>Home Team</td>
-    </tr>
-    <tr>
-      <th>27</th>
-      <td>28</td>
-      <td>Tails</td>
-      <td>Away Team</td>
-      <td>Away Team</td>
-    </tr>
-    <tr>
-      <th>28</th>
-      <td>29</td>
-      <td>Heads</td>
-      <td>Home Team</td>
-      <td>Home Team</td>
-    </tr>
-    <tr>
-      <th>29</th>
-      <td>30</td>
-      <td>Tails</td>
-      <td>Away Team</td>
-      <td>Away Team</td>
-    </tr>
-    <tr>
-      <th>30</th>
-      <td>31</td>
-      <td>Heads</td>
-      <td>Away Team</td>
-      <td>Home Team</td>
-    </tr>
-    <tr>
-      <th>31</th>
-      <td>32</td>
-      <td>Tails</td>
-      <td>Away Team</td>
-      <td>Home Team</td>
-    </tr>
-    <tr>
-      <th>32</th>
-      <td>33</td>
-      <td>Tails</td>
-      <td>Home Team</td>
-      <td>Away Team</td>
-    </tr>
-    <tr>
-      <th>33</th>
-      <td>34</td>
-      <td>Tails</td>
-      <td>Away Team</td>
-      <td>Away Team</td>
-    </tr>
-    <tr>
-      <th>34</th>
-      <td>35</td>
-      <td>Tails</td>
-      <td>Home Team</td>
-      <td>Away Team</td>
-    </tr>
-    <tr>
-      <th>35</th>
-      <td>36</td>
-      <td>Heads</td>
-      <td>Away Team</td>
-      <td>Home Team</td>
-    </tr>
-    <tr>
-      <th>36</th>
-      <td>37</td>
-      <td>Tails</td>
-      <td>Home Team</td>
-      <td>Home Team</td>
-    </tr>
-    <tr>
-      <th>37</th>
-      <td>38</td>
-      <td>Tails</td>
-      <td>Away Team</td>
-      <td>Home Team</td>
-    </tr>
-    <tr>
-      <th>38</th>
-      <td>39</td>
-      <td>Tails</td>
-      <td>Home Team</td>
-      <td>Away Team</td>
-    </tr>
-    <tr>
-      <th>39</th>
-      <td>40</td>
-      <td>Tails</td>
-      <td>Away Team</td>
-      <td>Home Team</td>
-    </tr>
-    <tr>
-      <th>40</th>
-      <td>41</td>
-      <td>Heads</td>
-      <td>Home Team</td>
-      <td>Away Team</td>
-    </tr>
-    <tr>
-      <th>41</th>
-      <td>42</td>
-      <td>Tails</td>
-      <td>Away Team</td>
-      <td>Away Team</td>
-    </tr>
-    <tr>
-      <th>42</th>
-      <td>43</td>
-      <td>Heads</td>
-      <td>Home Team</td>
-      <td>Away Team</td>
-    </tr>
-    <tr>
-      <th>43</th>
-      <td>44</td>
-      <td>Heads</td>
-      <td>Away Team</td>
-      <td>Away Team</td>
-    </tr>
-    <tr>
-      <th>44</th>
-      <td>45</td>
-      <td>Heads</td>
-      <td>Home Team</td>
-      <td>Home Team</td>
-    </tr>
-    <tr>
-      <th>45</th>
-      <td>46</td>
-      <td>Heads</td>
-      <td>Home Team</td>
-      <td>Away Team</td>
-    </tr>
-    <tr>
-      <th>46</th>
-      <td>47</td>
-      <td>Heads</td>
-      <td>Away Team</td>
-      <td>Away Team</td>
-    </tr>
-    <tr>
-      <th>47</th>
-      <td>48</td>
-      <td>Tails</td>
-      <td>Away Team</td>
-      <td>Away Team</td>
-    </tr>
-    <tr>
-      <th>48</th>
-      <td>49</td>
-      <td>Tails</td>
-      <td>Home Team</td>
-      <td>Away Team</td>
-    </tr>
-    <tr>
-      <th>49</th>
-      <td>50</td>
-      <td>Tails</td>
-      <td>Away Team</td>
-      <td>Home Team</td>
-    </tr>
-    <tr>
-      <th>50</th>
-      <td>51</td>
-      <td>Tails</td>
-      <td>Home Team</td>
-      <td>Away Team</td>
-    </tr>
-    <tr>
-      <th>51</th>
-      <td>52</td>
-      <td>Heads</td>
-      <td>Home Team</td>
-      <td>Away Team</td>
-    </tr>
-    <tr>
-      <th>52</th>
-      <td>53</td>
-      <td>Tails</td>
-      <td>Home Team</td>
-      <td>Away Team</td>
-    </tr>
-    <tr>
-      <th>53</th>
-      <td>54</td>
-      <td>Tails</td>
-      <td>Away Team</td>
-      <td>Home Team</td>
-    </tr>
-    <tr>
-      <th>54</th>
-      <td>55</td>
-      <td>Heads</td>
-      <td>Away Team</td>
-      <td>Home Team</td>
+      <th>Before</th>
+      <td>1952</td>
+      <td>2610</td>
     </tr>
   </tbody>
 </table>
@@ -1281,5 +774,23 @@ sb_data
 
 
 ```python
+chi2, p, dof, ex = stats.chi2_contingency(homogeneity_table)
 
+print("Chi-square statistic:", chi2)
+print("p-value:", p)
 ```
+
+    Chi-square statistic: 5.103806036450754
+    p-value: 0.02387340466860268
+
+
+If we are using an alpha of 0.05, this p-value means that we can agree with the article author, that there is a statistically significant difference in the home field advantage for 2020 compared to previous seasons.
+
+## Additional Resources
+
+* [Video explanation](https://youtu.be/TyD-_1JUhxw) of the different kinds of chi-square tests
+* [More examples of the chi-square test for homogeneity](https://www.stats4stem.org/chi-square-test-for-homogeneity)
+
+## Summary
+
+The chi-squared test is a useful test for determining whether there are statistically significant differences in the frequencies of different categorical features. It can be used to compare a single categorical variable against a theoretical frequency, or to compare two categorical features using a contingency table.
