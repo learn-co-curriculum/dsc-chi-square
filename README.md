@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 
 ## Comparing t-tests and Chi-Square Tests
 
-We'll introduce the chi-square test by comparing to and contrasting it with a familiar statistical test: the t-test!
+We'll introduce the chi-square test by comparing and contrasting it with a familiar statistical test: the t-test!
 
 ### t-test Refresher
 
@@ -32,15 +32,15 @@ For example, we might do a one-sample, two-tailed t-test if we have the followin
 
 
 ```python
-sample_data = stats.norm.rvs(20, scale=2, size=50, random_state=5)
-fig, ax = plt.subplots()
+# Generate sample data as a normal continuous random variable
+sample_data = stats.norm.rvs(loc=20, scale=2, size=50, random_state=5)
 
+# Plot data as well as theoretical mean of 21
+fig, ax = plt.subplots()
 ax.hist(sample_data, alpha=0.5, label="Sample Data")
 ax.axvline(sample_data.mean(), linestyle="--", label=r"Sample Mean $\mu$")
 ax.axvline(21, linestyle="--", color="orange", label=r"Theoretical Mean $\mu_{0}$")
-
 ax.set_ylabel("Count")
-
 ax.legend();
 ```
 
@@ -54,7 +54,7 @@ Recall that the t-test:
 
 * Has **null and alternative hypotheses about the mean(s)** of one or two samples. For the example shown above, the alternative hypothesis is $\mu \neq \mu_{0}$ (i.e. $\mu \neq 21$)
 * Involves the calculation of a **t-statistic** (or t-value) that represents a standardized version of the difference between the two means, utilizing the sample variance as well as the number in the sample to perform this standardization
-* Compares this t-statistic to the **t-distribution** (a bell-curve-shaped distribution) in order to determine whether we can reject the null hypothesis at a given alpha level — i.e. to determine whether the difference specified by the alternative hypothesis is statistically significant
+* Compares this t-statistic to the **t-distribution** (a bell-curve-shaped distribution) in order to determine whether we can reject the null hypothesis at a given alpha level — i.e. to determine whether the difference between the data and the theoretical expectation is statistically significant
 
 The simplest way to execute a t-test is like this, using `scipy.stats`. We pass in the data plotted above, and use the hypotheses $H_{0}: \mu = \mu_{0}$ and $H_{a}: \mu \neq \mu_{0}$ as well as $\alpha = 0.01$ to come to a conclusion.
 
@@ -72,17 +72,17 @@ stats.ttest_1samp(sample_data, 21)
 
 Based on the results above (two-sided, since our alternative hypothesis is $\mu_ \neq \mu_{0}$) we can reject the null hypothesis at an alpha of 0.01, since the resulting p-value (0.0016) is less than our alpha. Therefore we can say that the difference between the sample mean and 21 is statistically significant at the 0.01 significance level.
 
-(If you look closely at the code generating the sample, it was generated using different a df of 20 and with fairly little variance, so it it makes sense that we got this result!)
+(If you look closely at the code generating the sample, it was generated using a `loc` (mean) of 20 and a fairly small `scale` (variance), so it it makes sense that we got this result!)
 
 ### Chi-Square Test Introduction
 
 The chi-square ($\chi^2$) test is applicable for **discrete** variables that can be represented by a **probability mass function**, which allows us to understand the data in terms of the **frequencies** of each outcome. There are several different kinds of chi-square tests depending on the question being asked, but we'll focus on *Pearson's chi-square test* and how it is applied for goodness of fit, independence, and homogeneity.
 
-Let's start with a goodness of fit example. This is kind of like the one-sample t-test shown above, in that we are comparing sample data to a theoretical value. This time instead of comparing the sample mean to a theoretical mean, we will compare the frequencies of observed data to the expected frequencies.
+Let's start with a ***goodness of fit*** example. This is kind of like the one-sample t-test shown above, in that we are comparing sample data to a theoretical value. This time instead of comparing the sample mean to a theoretical mean, we will compare the frequencies of observed data to the expected frequencies.
 
 #### Fair Coin?
 
-For this example, let's use the coin toss at the Super Bowl (current data through Super Bowl 55). We expect that this is a "fair" coin, meaning that we would expect it to produce Heads and Tails equally often.
+For this example, let's use the coin toss at the Super Bowl (data through Super Bowl 55). We expect that this is a "fair" coin, meaning that we would expect it to produce Heads and Tails equally often.
 
 
 ```python
@@ -180,9 +180,9 @@ coin_toss_counts
 fig, ax = plt.subplots()
 
 # Extract observed counts
-observed = coin_toss_counts.values
+fair_coin_observed = coin_toss_counts.values
 # Heads and tails each expected half the time
-expected = [sum(coin_toss_counts)/2, sum(coin_toss_counts)/2]
+fair_coin_expected = [sum(coin_toss_counts)/2, sum(coin_toss_counts)/2]
 
 # Placeholder data for display purposes; you can ignore these values
 x = np.array([0, 5])
@@ -190,14 +190,15 @@ offset = 1
 bar_width = 2
 
 # Plot bars
-ax.bar(x-offset, observed, bar_width, label="Observed")
-ax.bar(x+offset, expected, bar_width, label="Expected")
+ax.bar(x-offset, fair_coin_observed, bar_width, label="Observed")
+ax.bar(x+offset, fair_coin_expected, bar_width, label="Expected")
 
 # Customize appearance
 ax.set_xticks(x)
 ax.set_xticklabels(["Heads", "Tails"])
 ax.set_ylabel("Count")
-ax.legend(loc="right");
+ax.legend(loc="right")
+fig.suptitle("Super Bowl Coin Tosses");
 ```
 
 
@@ -216,16 +217,16 @@ To answer this, we'll need to perform a chi-square test.
 
 A chi-square test:
 
-* Has **null and alternative hypotheses about the frequencies of categorical data**. For the example shown above, we'll use the null hypothesis that $P(Heads) = P(Tails) = 0.5$, i.e. that there is no significant difference between the observed and expected values. The alternative hypothesis is that there is a significant difference.
+* Has **null and alternative hypotheses about the frequencies of categorical data**. For the example shown above, we'll use the null hypothesis that $P(\text{Heads}) = 0.5$ and $P(\text{Tails}) = 0.5$, i.e. that there is no significant difference between the observed and expected values. The alternative hypothesis is that there is a significant difference.
 * Involves the calculation of a **chi-square statistic** (also just referred to as $\chi^2$) that represents a standardized version of the difference between the observed and expected values
-* Compares this $\chi^2$ to the **chi-square distribution** (the shape of which varies depending on the degrees of freedom) in order to determine whether we can reject the null hypothesis at a given alpha level — i.e. to determine whether the difference specified by the alternative hypothesis is statistically significant
+* Compares this $\chi^2$ to the **chi-square distribution** (the shape of which varies depending on the degrees of freedom) in order to determine whether we can reject the null hypothesis at a given alpha level — i.e. to determine whether the difference between the data and the theoretical expectation is statistically significant
 
 Once again, the simplest way to do this is using `scipy.stats` ([documentation here](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.chisquare.html)). We'll again say that our alpha is 0.01.
 
 
 ```python
-result = stats.chisquare(observed, expected)
-result
+fair_coin_result = stats.chisquare(fair_coin_observed, fair_coin_expected)
+fair_coin_result
 ```
 
 
@@ -245,8 +246,8 @@ Another question we might want to ask is whether the home team wins more often t
 
 
 ```python
-game_winner_counts = sb_data["Game Winner"].value_counts().sort_index()
-game_winner_counts
+game_winner_counts_sb = sb_data["Game Winner"].value_counts().sort_index()
+game_winner_counts_sb
 ```
 
 
@@ -262,10 +263,34 @@ Interesting, it looks like the away team actually wins more often. But is this d
 
 
 ```python
-observed = game_winner_counts.values
-expected = [sum(game_winner_counts)/2, sum(game_winner_counts)/2]
+fig, ax = plt.subplots()
 
-stats.chisquare(observed, expected)
+# Extract data
+observed = game_winner_counts_sb.values
+expected = [sum(game_winner_counts_sb)/2, sum(game_winner_counts_sb)/2]
+
+# Plot bars
+ax.bar(x-offset, observed, bar_width, label="Observed")
+ax.bar(x+offset, expected, bar_width, label="Expected")
+
+# Customize appearance
+ax.set_xticks(x)
+ax.set_xticklabels(["Away Team Wins", "Home Team Wins"])
+ax.set_ylabel("Count")
+ax.legend(loc="right")
+fig.suptitle("Super Bowl Home-Field Advantage");
+```
+
+
+    
+![png](index_files/index_20_0.png)
+    
+
+
+
+```python
+home_field_advantage_result_sb = stats.chisquare(observed, expected)
+home_field_advantage_result_sb
 ```
 
 
@@ -289,8 +314,8 @@ nfl_data = nfl_data[(nfl_data["neutral"] == 0) & (nfl_data["playoff"] == 0) & (n
 nfl_data.loc[nfl_data["result1"] == 0, "Game Winner"] = "Away Team"
 nfl_data.loc[nfl_data["result1"] == 1, "Game Winner"] = "Home Team"
 
-game_winner_counts = nfl_data["Game Winner"].value_counts().sort_index()
-game_winner_counts
+game_winner_counts_nfl = nfl_data["Game Winner"].value_counts().sort_index()
+game_winner_counts_nfl
 ```
 
 
@@ -302,12 +327,38 @@ game_winner_counts
 
 
 
+For this much larger dataset, it looks like the home team does win more often.
+
 
 ```python
-observed = game_winner_counts.values
-expected = [sum(game_winner_counts)/2, sum(game_winner_counts)/2]
+fig, ax = plt.subplots()
 
-stats.chisquare(observed, expected)
+# Extract data
+observed = game_winner_counts_nfl.values
+expected = [sum(game_winner_counts_nfl)/2, sum(game_winner_counts_nfl)/2]
+
+# Plot bars
+ax.bar(x-offset, observed, bar_width, label="Observed")
+ax.bar(x+offset, expected, bar_width, label="Expected")
+
+# Customize appearance
+ax.set_xticks(x)
+ax.set_xticklabels(["Away Team Wins", "Home Team Wins"])
+ax.set_ylabel("Count")
+ax.legend(loc="right")
+fig.suptitle("NFL Season Home-Field Advantage");
+```
+
+
+    
+![png](index_files/index_25_0.png)
+    
+
+
+
+```python
+home_field_advantage_result_nfl = stats.chisquare(observed, expected)
+home_field_advantage_result_nfl
 ```
 
 
@@ -338,14 +389,14 @@ We'll apply this to our coin flip example below.
 
 ```python
 n = 2 # number of categories (Heads, Tails)
-chi_square = sum([((observed[i] - expected[i])**2)/expected[i] for i in range(n)])
+chi_square = sum([((fair_coin_observed[i] - fair_coin_expected[i])**2)/fair_coin_expected[i] for i in range(n)])
 chi_square
 ```
 
 
 
 
-    263.0444408401589
+    0.16363636363636364
 
 
 
@@ -353,7 +404,7 @@ Note that this is the same as the statistic from when we called the `chisquare` 
 
 
 ```python
-result.statistic
+fair_coin_result.statistic
 ```
 
 
@@ -382,7 +433,7 @@ ax.legend();
 
 
     
-![png](index_files/index_30_0.png)
+![png](index_files/index_33_0.png)
     
 
 
@@ -414,7 +465,7 @@ ax.legend();
 
 
     
-![png](index_files/index_33_0.png)
+![png](index_files/index_36_0.png)
     
 
 
@@ -435,7 +486,7 @@ ax.legend();
 
 
     
-![png](index_files/index_35_0.png)
+![png](index_files/index_38_0.png)
     
 
 
@@ -451,7 +502,7 @@ stats.chi2.sf(chi_square, df=df)
 
 
 
-    3.723190824055013e-59
+    0.6858304344516056
 
 
 
@@ -459,7 +510,7 @@ This is the same value we got from the `chisquare` function:
 
 
 ```python
-result.pvalue
+fair_coin_result.pvalue
 ```
 
 
@@ -490,7 +541,7 @@ ax.legend(fontsize="x-large");
 
 
     
-![png](index_files/index_41_0.png)
+![png](index_files/index_44_0.png)
     
 
 
